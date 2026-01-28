@@ -7,16 +7,13 @@
 
 # Key Pain Points
 
-### 1. HIGH FEES & MIDDLEMEN
+### 1. THE "GAS FEE" BARRIER
+In standard crypto donations, donors must pay gas fees *on top* of their donation. They need to hold native tokens (ETH) just to transact, which confuses new users and lowers conversion rates.
 
-Traditional donation platforms take 5-10% cuts from creator earnings. Payment gateways add even more processing fees, reducing the actual amount received.
-
-### 2. CRYPTO ONBOARDING FRICTION
-
-Viewers want to support creators with crypto, but connecting wallets, managing gas fees, and understanding networks is a major barrier for non-native users.
+### 2. UNPREDICTABLE COSTS
+Network congestion can spike transaction costs unexpectedly, discouraging users from making micro-donations (saweran) or supporting small creators.
 
 ### 3. NO REAL-TIME ON-CHAIN ALERTS
-
 Most crypto transfers are silent. They don't trigger stream alerts (OBS) instantly, requiring complex webhook setups or manual monitoring by the creator.
 
 ---
