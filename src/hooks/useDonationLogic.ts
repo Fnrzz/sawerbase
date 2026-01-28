@@ -1,184 +1,254 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance, useSwitchChain, useDisconnect } from 'wagmi';
-import { usePrivy } from '@privy-io/react-auth';
-import { parseUnits, type Address, maxUint256 } from 'viem';
+import { useState, useMemo, useEffect } from 'react';
+import { useReadContract, useDisconnect } from 'wagmi';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useSmartWallets } from '@privy-io/react-auth/smart-wallets';
+import { parseUnits, encodeFunctionData, type Address, createPublicClient, http, createWalletClient, custom } from 'viem';
+import { baseSepolia } from 'viem/chains';
 import { SAWERBASE_ADDRESS, IDRX_ADDRESS, SAWERBASE_ABI, ERC20_ABI } from '@/constants/contracts';
+import { createDonation } from '@/lib/supabase-actions'; 
 
 export type DonationStatus = 'IDLE' | 'LOGIN_NEEDED' | 'CHECKING' | 'APPROVE_NEEDED' | 'READY_TO_DONATE' | 'PROCESSING' | 'SUCCESS' | 'ERROR';
 
 export function useDonationLogic(amount: string, streamerAddress: string) {
-  const { authenticated, login, user, logout: privyLogout } = usePrivy();
+  const { authenticated, login, user, logout: privyLogout, ready } = usePrivy();
   const { disconnect } = useDisconnect();
-  const account = useAccount(); // Wagmi account
-  const wagmiAddress = account.address;
-  // Prioritize Privy wallet address if authenticated, especially for embedded wallets
-  const address = (user?.wallet?.address as Address | undefined) || wagmiAddress;
+  // We need wallets to sign permits
+  const { wallets } = useWallets();
+  const { client: smartWalletClient } = useSmartWallets();
+
+  const smartWalletAddress = smartWalletClient?.account?.address;
+  const eoaWallet = wallets.find(w => w.address === user?.wallet?.address);
+  const eoaAddress = eoaWallet?.address as Address | undefined;
+
+  const isEmailUser = user?.wallet?.connectorType === 'embedded';
   
-  const logout = async () => {
-      await privyLogout();
-      disconnect();
-  };
-  
+  // Data Fetching
+  const publicClient = useMemo(() => createPublicClient({ chain: baseSepolia, transport: http() }), []);
+
   const [status, setStatus] = useState<DonationStatus>('IDLE');
-  
-  // Wagmi Hooks
-  const { writeContract, data: hash, isPending: isWritePending, error: writeError } = useWriteContract();
-  const { switchChain } = useSwitchChain();
-  const isWrongNetwork = account.chainId !== 84532;
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [hash, setHash] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Auto-Switch Network on Login
+  const amountBigInt = useMemo(() => {
+      try {
+          return amount ? parseUnits(amount, 18) : BigInt(0); // Assuming 18 decimals or fetch
+      } catch {
+          return BigInt(0);
+      }
+  }, [amount]);
+
+  // Sync Status with Auth & Input
   useEffect(() => {
-    if (authenticated && isWrongNetwork) {
-        switchChain({ chainId: 84532 });
+    if (ready && !authenticated) {
+        setStatus('LOGIN_NEEDED');
+    } else if (authenticated) {
+        if (amountBigInt > BigInt(0)) {
+            // Valid amount and logged in -> Ready
+            setStatus('READY_TO_DONATE');
+        } else {
+            // Logged in but no amount -> Idle
+            setStatus('IDLE');
+        }
     }
-  }, [authenticated, isWrongNetwork, switchChain]);
+  }, [ready, authenticated, amountBigInt]);
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
+  const targetAddress = isEmailUser ? smartWalletAddress : eoaAddress;
 
-  // ... (Reading Contracts) ...
-  // Check ETH Balance for Gas
-  const { data: ethBalance } = useBalance({
-      address: address,
-      query: { enabled: !!address }
-  });
-
-  // Read IDRX Balance
-  const { data: balance } = useReadContract({
+  const { data: balance, refetch: refetchBalance } = useReadContract({
     address: IDRX_ADDRESS,
     abi: ERC20_ABI,
     functionName: 'balanceOf',
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    args: targetAddress ? [targetAddress] : undefined,
+    query: { enabled: !!targetAddress }
   });
 
-  // Read Allowance
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: IDRX_ADDRESS,
-    abi: ERC20_ABI,
-    functionName: 'allowance',
-    args: address ? [address, SAWERBASE_ADDRESS] : undefined,
-    query: { enabled: !!address },
-  });
+   // Helper: Send Sponsored Transaction using Smart Wallet
+    const sendSponsoredTransaction = async (calls: { to: Address, data: `0x${string}`, value: bigint }[]) => {
+        if (!smartWalletClient) throw new Error("Smart Wallet not ready");
+        console.log("Submitting sponsored transaction...", calls);
+        // The provider setup handles the sponsorship via /api/paymaster
+        return await smartWalletClient.sendTransaction({
+            account: smartWalletClient.account,
+            chain: baseSepolia,
+            calls: calls
+        });
+    };
 
-  // Read Token Decimals
-  const { data: decimals } = useReadContract({
-    address: IDRX_ADDRESS,
-    abi: ERC20_ABI,
-    functionName: 'decimals',
-    query: { staleTime: Infinity }, // Decimals rarely change
-  });
+    const donate = async (donorName: string, message: string) => {
+        if (!authenticated || !user || !smartWalletClient) {
+            login();
+            return;
+        }
 
-  // Derived State
-  const amountBigInt = useMemo(() => {
-    try {
-      const decimalsToUse = decimals ?? 18; // Fallback to 18 while loading
-      return amount ? parseUnits(amount, decimalsToUse) : BigInt(0);
-    } catch {
-      return BigInt(0);
+        setIsProcessing(true);
+        setError(null);
+        setHash(undefined);
+
+        let txHash: string | undefined;
+
+        try {
+            if (isEmailUser) {
+                const approveData = encodeFunctionData({
+                    abi: ERC20_ABI,
+                    functionName: 'approve',
+                    args: [SAWERBASE_ADDRESS, amountBigInt]
+                });
+                const donateData = encodeFunctionData({
+                    abi: SAWERBASE_ABI,
+                    functionName: 'donate',
+                    args: [IDRX_ADDRESS, amountBigInt, streamerAddress as Address]
+                });
+
+                txHash = await sendSponsoredTransaction([
+                    { to: IDRX_ADDRESS, data: approveData, value: BigInt(0) },
+                    { to: SAWERBASE_ADDRESS, data: donateData, value: BigInt(0) }
+                ]);
+
+            } else {
+                const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
+                
+                const domain = {
+                    name: 'Rupiah Token',
+                    version: '1',
+                    chainId: baseSepolia.id,
+                    verifyingContract: IDRX_ADDRESS
+                };
+                const types = {
+                    Permit: [
+                        { name: 'owner', type: 'address' },
+                        { name: 'spender', type: 'address' },
+                        { name: 'value', type: 'uint256' },
+                        { name: 'nonce', type: 'uint256' },
+                        { name: 'deadline', type: 'uint256' }
+                    ]
+                };
+
+                const nonce = await publicClient.readContract({
+                    address: IDRX_ADDRESS,
+                    abi: ERC20_ABI,
+                    functionName: 'nonces',
+                    args: [eoaAddress!]
+                });
+
+                const message = {
+                    owner: eoaAddress!,
+                    spender: smartWalletAddress!,
+                    value: amountBigInt,
+                    nonce: nonce,
+                    deadline: deadline
+                };
+
+                const provider = await eoaWallet?.getEthereumProvider();
+                if (!provider) throw new Error("No provider for EOA");
+
+                const walletClient = createWalletClient({
+                    account: eoaAddress as Address,
+                    chain: baseSepolia,
+                    transport: custom(provider)
+                });
+
+                const signature = await walletClient.signTypedData({
+                    account: eoaAddress as Address,
+                    domain,
+                    types,
+                    primaryType: 'Permit',
+                    message
+                });
+                
+                const { v, r, s } = parseSignature(signature); 
+
+                const permitData = encodeFunctionData({
+                    abi: ERC20_ABI,
+                    functionName: 'permit',
+                    args: [eoaAddress!, smartWalletAddress!, amountBigInt, deadline, v, r, s]
+                });
+                
+                const pullData = encodeFunctionData({
+                    abi: ERC20_ABI,
+                    functionName: 'transferFrom',
+                    args: [eoaAddress!, smartWalletAddress!, amountBigInt]
+                });
+                
+                const approveData = encodeFunctionData({
+                    abi: ERC20_ABI,
+                    functionName: 'approve',
+                    args: [SAWERBASE_ADDRESS, amountBigInt]
+                });
+                
+                const donateData = encodeFunctionData({
+                    abi: SAWERBASE_ABI,
+                    functionName: 'donate',
+                    args: [IDRX_ADDRESS, amountBigInt, streamerAddress as Address]
+                });
+
+                txHash = await sendSponsoredTransaction([
+                    { to: IDRX_ADDRESS, data: permitData, value: BigInt(0) },
+                    { to: IDRX_ADDRESS, data: pullData, value: BigInt(0) },
+                    { to: IDRX_ADDRESS, data: approveData, value: BigInt(0) },
+                    { to: SAWERBASE_ADDRESS, data: donateData, value: BigInt(0) }
+                ]);
+            }
+
+            if (txHash) {
+                setHash(txHash);
+                await createDonation(
+                    targetAddress || '0x00',
+                    donorName,
+                    parseFloat(amount || '0'), 
+                    message,
+                    streamerAddress,
+                    'completed',
+                    txHash
+                );
+                setStatus('SUCCESS');
+                refetchBalance();
+            }
+
+        } catch (err: unknown) {
+            console.error('Donation Failed:', err);
+            setError(err as Error);
+            setStatus('ERROR');
+            
+            await createDonation(
+                targetAddress || '0x00',
+                donorName,
+                parseFloat(amount || '0'), 
+                message,
+                streamerAddress,
+                'failed'
+            );
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // Helper to parse signature
+    function parseSignature(signature: `0x${string}`) {
+        // viem has parseSignature or we do it manually
+        const r = signature.slice(0, 66) as `0x${string}`;
+        const s = ('0x' + signature.slice(66, 130)) as `0x${string}`;
+        let v = parseInt(signature.slice(130, 132), 16);
+        if (v < 27) v += 27;
+        return { v, r, s };
     }
-  }, [amount, decimals]);
 
-  const hasBalance = useMemo(() => {
-    if (balance === undefined) return false;
-    return balance >= amountBigInt;
-  }, [balance, amountBigInt]);
-
-  const isApproved = useMemo(() => {
-    if (allowance === undefined) return false;
-    return allowance >= amountBigInt;
-  }, [allowance, amountBigInt]);
-
-  const hasEth = useMemo(() => {
-      return ethBalance ? ethBalance.value > BigInt(0) : false;
-  }, [ethBalance]);
-
-  // Status Management
-  useEffect(() => {
-    if (!authenticated) {
-      setStatus('LOGIN_NEEDED');
-      return;
-    }
-
-    if (isWritePending || isConfirming) {
-      setStatus('PROCESSING');
-      return;
-    }
-    
-    // If not processing, check approved state
-    if (amountBigInt > BigInt(0)) {
-       if (!isApproved) {
-         setStatus('APPROVE_NEEDED');
-       } else {
-         setStatus('READY_TO_DONATE');
-       }
-    } else {
-        setStatus('IDLE');
-    }
-    
-  }, [authenticated, isWritePending, isConfirming, isApproved, amountBigInt, account.chainId]);
-
-  // Effect for Transaction Success
-  useEffect(() => {
-    if (isConfirmed && hash) {
-      refetchAllowance().then(() => {
-          // allowance updated
-      });
-    }
-  }, [isConfirmed, hash, refetchAllowance]);
-
-
-  const approve = () => {
-    if (!address) return;
-    // Infinite Approval Strategy
-    // We approve the maximum possible amount so the user doesn't have to approve again for future donations.
-    writeContract({
-      address: IDRX_ADDRESS,
-      abi: ERC20_ABI,
-      functionName: 'approve',
-      args: [SAWERBASE_ADDRESS, maxUint256],
-    });
-  };
-
-  const donate = () => {
-    if (!address) return;
-
-    // --- FORENSIC LOGGING ---
-    console.log('[DEBUG] Donating...');
-    console.log('[DEBUG] Token:', IDRX_ADDRESS);
-    console.log('[DEBUG] Amount (wei):', amountBigInt.toString());
-    console.log('[DEBUG] Streamer:', streamerAddress);
-    
-    // Fee Simulation (10%)
-    const fee = (amountBigInt * BigInt(10)) / BigInt(100);
-    const net = amountBigInt - fee;
-    console.log('[DEBUG] Simulated Fee:', fee.toString());
-    console.log('[DEBUG] Simulated Net:', net.toString());
-    // ------------------------
-
-    writeContract({
-      address: SAWERBASE_ADDRESS,
-      abi: SAWERBASE_ABI,
-      functionName: 'donate',
-      args: [IDRX_ADDRESS, amountBigInt, streamerAddress as Address],
-    });
-  };
-
-
+  // Derived State helpers
+  const hasBalance = balance ? balance >= amountBigInt : false;
+  // Skip hasEth check because we prefer sponsorship
 
   return {
     status,
     hasBalance,
-    hasEth,
+    hasEth: true, // Mocked as true since we sponsor
     login,
-    approve,
+    approve: () => {}, // No manual approve needed in hybrid flow
     donate,
-    isProcessing: isWritePending || isConfirming,
-    isConfirmed,
+    isProcessing,
+    isConfirmed: !!hash,
     hash,
-    error: writeError,
+    error,
     balance,
-    logout,
+    logout: async () => { await privyLogout(); disconnect(); }
   };
 }

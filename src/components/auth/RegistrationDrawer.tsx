@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { usePrivy } from '@privy-io/react-auth';
-import { supabase } from '@/lib/supabase';
+import { createProfile, isUsernameAvailable } from '@/lib/supabase-actions'; // Pastikan import ini benar
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,9 +22,6 @@ interface RegistrationDrawerProps {
 }
 
 export function RegistrationDrawer({ isOpen, walletAddress }: RegistrationDrawerProps) {
-  const router = useRouter();
-  const { user } = usePrivy();
-  
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +30,7 @@ export function RegistrationDrawer({ isOpen, walletAddress }: RegistrationDrawer
   const handleSubmit = async () => {
     setError('');
     
-    // Validation
+    // Validasi Sederhana
     if (!username || !displayName) {
       setError('Mohon isi semua data.');
       return;
@@ -46,45 +41,34 @@ export function RegistrationDrawer({ isOpen, walletAddress }: RegistrationDrawer
       return;
     }
 
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-       setError('Username hanya boleh huruf, angka, dan underscore.');
+    // Hanya huruf kecil, angka, dan underscore
+    if (!/^[a-z0-9_]+$/.test(username)) {
+       setError('Username hanya boleh huruf kecil, angka, dan underscore (_).');
        return;
     }
 
     setIsLoading(true);
 
     try {
-       // Check availability
-       const { data: existing } = await supabase
-         .from('profiles')
-         .select('id')
-         .eq('username', username)
-         .single();
-         
-       if (existing) {
-          setError('Username sudah dipakai.');
+       // 1. Cek Username Unik
+       const available = await isUsernameAvailable(username);
+       if (!available) {
+          setError('Username sudah dipakai orang lain.');
           setIsLoading(false);
           return;
        }
 
-       // Insert Profile
-       // Use user.id as privy_user_id
-       const { error: insertError } = await supabase
-         .from('profiles')
-         .insert({
-            wallet_address: walletAddress,
-            privy_user_id: user?.id,
-            username: username,
-            display_name: displayName,
-         });
+       // 2. Simpan ke Supabase
+       await createProfile(walletAddress, username, displayName);
 
-       if (insertError) throw insertError;
-
-       toast.success('Profil berhasil dibuat!');
-       router.push('/dashboard');
-    } catch (err: unknown) {
+       toast.success('Profil berhasil dibuat! Selamat datang.');
+       
+       // Refresh halaman agar AuthGuard mendeteksi profile baru
+       window.location.reload(); 
+       
+    } catch (err) {
         console.error('Registration error:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Gagal mendaftar.';
+        const errorMessage = err instanceof Error ? err.message : 'Gagal mendaftar. Coba lagi.';
         setError(errorMessage);
     } finally {
         setIsLoading(false);
@@ -92,18 +76,22 @@ export function RegistrationDrawer({ isOpen, walletAddress }: RegistrationDrawer
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => e.preventDefault()}>
+    <Dialog open={isOpen} onOpenChange={() => {
+        // Cegah user menutup dialog dengan klik di luar (Force Register)
+        // Kita kosongkan handler ini atau beri warning
+        toast.error("Anda harus mendaftar untuk mengakses Dashboard.");
+    }}>
+      <DialogContent className="sm:max-w-[425px]" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Selesaikan Profil Kamu</DialogTitle>
             <DialogDescription>
-              Buat profilmu untuk mulai menerima dukungan.
+              Alamat Wallet: <span className="font-mono text-xs bg-muted p-1 rounded">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-               <Label htmlFor="username">Username</Label>
+               <Label htmlFor="username">Username (Unik)</Label>
                <div className="relative">
                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">@</span>
                  <Input 
@@ -111,14 +99,13 @@ export function RegistrationDrawer({ isOpen, walletAddress }: RegistrationDrawer
                     placeholder="kreator_keren" 
                     className="pl-8"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))} // Auto lowercase & no space
                   />
                </div>
-               <p className="text-xs text-muted-foreground">Hanya huruf, angka, dan underscore.</p>
             </div>
 
             <div className="grid gap-2">
-               <Label htmlFor="displayName">Display Name</Label>
+               <Label htmlFor="displayName">Nama Tampilan</Label>
                <Input 
                   id="displayName" 
                   placeholder="Kreator Keren" 
@@ -127,13 +114,13 @@ export function RegistrationDrawer({ isOpen, walletAddress }: RegistrationDrawer
                 />
             </div>
             
-            {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+            {error && <p className="text-sm text-red-500 font-medium animate-pulse">{error}</p>}
           </div>
 
           <DialogFooter>
             <Button onClick={handleSubmit} disabled={isLoading} className="w-full h-12 rounded-xl text-lg font-bold">
               {isLoading ? <Loader2 className="animate-spin mr-2" /> : null}
-              {isLoading ? 'Memproses...' : 'Buat Profil'}
+              {isLoading ? 'Simpan Profil' : 'Mulai Sekarang'}
             </Button>
           </DialogFooter>
       </DialogContent>

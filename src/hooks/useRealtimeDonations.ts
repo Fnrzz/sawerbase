@@ -9,6 +9,7 @@ export interface Donation {
   coin_type: string;
   streamer_wallet: string;
   created_at: string;
+  status: string; // Added status field
 }
 
 export function useRealtimeDonations(address?: string) {
@@ -18,12 +19,15 @@ export function useRealtimeDonations(address?: string) {
 
   // Helper to safely add to queue
   const addDonation = (donation: Donation) => {
+    // Correctness Check: Only show COMPLETED donations
+    if (donation.status !== 'completed') return;
+
     if (processedIdsRef.current.has(donation.id)) return;
     
     // Double check address match (client-side safety)
     if (donation.streamer_wallet?.toLowerCase() !== address?.toLowerCase()) return;
 
-    console.log('[useRealtimeDonations] Adding donation:', donation.id);
+    console.log('[useRealtimeDonations] Adding COMPLETED donation:', donation.id);
     processedIdsRef.current.add(donation.id);
     setQueue(prev => [...prev, donation]);
   };
@@ -33,18 +37,19 @@ export function useRealtimeDonations(address?: string) {
 
     console.log('[useRealtimeDonations] Subscribing for:', address);
     
-    // 1. Realtime Subscription
+    // 1. Realtime Subscription (INSERT + UPDATE)
     const channel = supabase
       .channel('donations-overlay')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen to INSERT and UPDATE
           schema: 'public',
           table: 'donations',
         },
         (payload) => {
           const newDonation = payload.new as Donation;
+          // Filter by address AND status
           if (newDonation.streamer_wallet?.toLowerCase() === address.toLowerCase()) {
              addDonation(newDonation);
           }
@@ -59,14 +64,11 @@ export function useRealtimeDonations(address?: string) {
     // 2. Polling Fallback (every 3s)
     const interval = setInterval(async () => {
       // Fetch new donations created after mount time
-      // We use the mountTime as a baseline to avoid fetching old history
-      // Note: This relies on server time vs client time sync roughly, 
-      // but strictly we just want "records appearing now".
-      
       const { data } = await supabase
         .from('donations')
         .select('*')
         .ilike('streamer_wallet', address)
+        .eq('status', 'completed') // Only fetch COMPLETED
         .gt('created_at', mountTimeRef.current)
         .order('created_at', { ascending: true });
 

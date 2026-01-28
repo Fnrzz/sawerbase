@@ -6,6 +6,7 @@ import { Providers } from "@/providers/Providers";
 import { Toaster } from "@/components/ui/sonner";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ModeToggle } from "@/components/ui/mode-toggle";
+import AuthGuard from "@/components/auth/AuthGuard";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen bg-background flex justify-center text-foreground antialiased`}>
         <Providers>
+          <AuthGuard>
           <div id="app-wrapper" className="w-full max-w-[480px] min-h-screen flex flex-col relative">
             <div className="absolute top-4 right-4 z-50">
               <ModeToggle />
@@ -38,6 +40,7 @@ export default function RootLayout({
             <Toaster />
             <BottomNav />
           </div>
+          </AuthGuard>
         </Providers>
       </body>
     </html>

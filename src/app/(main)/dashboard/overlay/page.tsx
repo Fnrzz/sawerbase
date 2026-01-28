@@ -10,10 +10,22 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Copy, ExternalLink, LayoutGrid } from 'lucide-react';
 
+import { useSmartWallets } from '@privy-io/react-auth/smart-wallets';
+
 export default function TipAlert() {
   const { user, authenticated } = usePrivy();
+  const { client: smartWalletClient } = useSmartWallets();
   const { address: wagmiAddress } = useAccount();
-  const address = user?.wallet?.address || wagmiAddress;
+  
+  // Determine Active Address
+  const isEmailUser = user?.wallet?.connectorType === 'embedded';
+  const smartWalletAddress = smartWalletClient?.account?.address;
+  
+  const activeAddress = isEmailUser 
+      ? smartWalletAddress 
+      : (user?.wallet?.address || wagmiAddress);
+
+  const address = activeAddress;
   
   const router = useRouter();
   const [loading, setLoading] = useState(true);

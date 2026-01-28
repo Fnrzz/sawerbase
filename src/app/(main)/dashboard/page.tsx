@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
+import { useSmartWallets } from '@privy-io/react-auth/smart-wallets';
 import { useBalance } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -13,18 +14,25 @@ import { formatUnits } from 'viem';
 
 export default function Dashboard() {
   const { ready, authenticated, user, logout } = usePrivy();
+  const { client: smartWalletClient } = useSmartWallets();
   const router = useRouter();
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Determine Active Address (Same logic as useDonationLogic)
+  const smartWalletAddress = smartWalletClient?.account?.address;
+  const isEmailUser = user?.wallet?.connectorType === 'embedded';
+  // If email user, prefer Smart Wallet. Else use connected wallet.
+  const activeAddress = (isEmailUser ? smartWalletAddress : user?.wallet?.address) as `0x${string}` | undefined;
+
   // Wagmi Balance for IDRX
   const { data: balanceData } = useBalance({
-    address: user?.wallet?.address as `0x${string}`,
+    address: activeAddress,
     token: IDRX_ADDRESS,
     query: {
-        enabled: !!user?.wallet?.address
+        enabled: !!activeAddress
     }
   });
 
@@ -36,13 +44,13 @@ export default function Dashboard() {
     }
 
     async function fetchData() {
-        if (!user?.wallet?.address) return;
+        if (!activeAddress) return;
 
         // Fetch Profile
         const { data: profileData } = await supabase
             .from('profiles')
             .select('*')
-            .eq('wallet_address', user.wallet.address)
+            .eq('wallet_address', activeAddress)
             .single();
         
         if (profileData) {
@@ -52,7 +60,7 @@ export default function Dashboard() {
     }
 
     fetchData();
-  }, [ready, authenticated, user, router]);
+  }, [ready, authenticated, user, router, activeAddress]);
 
   const copyLink = () => {
     if (!profile?.username) return;
@@ -62,10 +70,10 @@ export default function Dashboard() {
   };
 
   const copyObsLink = (type: 'alert' | 'leaderboard') => {
-    if (!user?.wallet?.address) return;
+    if (!activeAddress) return;
     const baseUrl = window.location.origin;
     // Force lowercase to ensure consistent matching with probable lowercase DB entries
-    const normalizedAddress = user.wallet.address.toLowerCase();
+    const normalizedAddress = activeAddress.toLowerCase();
     
     const path = type === 'alert' 
         ? `/overlay/${normalizedAddress}`
@@ -80,10 +88,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4">
+    <div className="min-h-screen bg-background text-foreground py-24 px-4">
         <div className="max-w-md mx-auto space-y-6">
             {/* Header */}
-            <div className="pt-24 mb-6 flex justify-between items-center">
+            <div className="mb-6 flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold">Halo, <span className="text-primary">{profile?.display_name || 'User'}</span> 👋</h1>
                     <p className="text-muted-foreground">Siap menerima saweran hari ini?</p>
@@ -113,7 +121,7 @@ export default function Dashboard() {
                          {balanceData ? parseFloat(formatUnits(balanceData.value, 18)).toLocaleString('id-ID') : '0'} 
                          <span className="text-lg font-bold text-muted-foreground ml-2">IDRX</span>
                      </h2>
-                     <p className="text-xs text-muted-foreground mt-2 font-mono">{user?.wallet?.address}</p>
+                     <p className="text-xs text-muted-foreground mt-2 font-mono">{activeAddress}</p>
                  </div>
             </div>
 

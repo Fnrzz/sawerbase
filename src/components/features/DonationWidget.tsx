@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { formatUnits } from 'viem';
 import { useDonationLogic } from '@/hooks/useDonationLogic';
-import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,48 +82,34 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
 
   const handleConfirmDonate = () => {
       lastActionRef.current = 'DONATE';
-      donate();
+      const nameToUse = isPrivate ? 'Anonymous' : (donorName || 'Someone');
+      donate(nameToUse, message);
       setIsConfirmOpen(false);
   };
 
   // Handle Transaction Success
-  const handleTxSuccess = async (txHash: string) => {
+  const handleTxSuccess = useCallback(async () => {
     if (lastActionRef.current === 'DONATE') {
       toast.success('Donation submitted! Waiting for confirmation...');
       
-      const { error: dbError } = await supabase.from('donations').insert({
-        donor_name: isPrivate ? 'Anonymous' : (donorName || 'Someone'),
-        message: message || '',
-        amount: amount,
-        coin_type: 'IDRX',
-        tx_digest: txHash,
-        streamer_wallet: streamerAddress,
-        status: 'completed',
-      });
-
-      if (dbError) {
-        console.error('Supabase Error:', dbError);
-        toast.error('Failed to save donation message.');
-      } else {
-        setAmount('');
-        setMessage('');
-        toast.info('Message sent to overlay!');
-      }
+      setAmount('');
+      setMessage('');
+      toast.info('Message sent to overlay!');
+      
       lastActionRef.current = null; // Reset
     } else if (lastActionRef.current === 'APPROVE') {
       toast.info('Approval submitted. You can now donate once confirmed.');
       lastActionRef.current = null;
     }
-  };
+  }, []);
 
   // Watch for confirmation
   useEffect(() => {
     if (isConfirmed && hash) {
        toast.success('Transaction confirmed!');
-       handleTxSuccess(hash);
+       handleTxSuccess();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConfirmed, hash]);
+  }, [isConfirmed, hash, handleTxSuccess]);
 
   // Watch for Errors
   useEffect(() => {
