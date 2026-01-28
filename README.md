@@ -1,36 +1,187 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# <img src="https://avatars.githubusercontent.com/u/108554348?s=200&v=4" alt="Base Logo" width="35" height="35" style="vertical-align: middle; margin-right: 10px;"> SawerBase
+### Next-Gen On-Chain Donation Platform for Creators
 
-## Getting Started
+**RECEIVE CRYPTO. STREAM LIVE. OWN YOUR EARNINGS.**
 
-First, run the development server:
+---
+
+# Key Pain Points
+
+### 1. HIGH FEES & MIDDLEMEN
+
+Traditional donation platforms take 5-10% cuts from creator earnings. Payment gateways add even more processing fees, reducing the actual amount received.
+
+### 2. CRYPTO ONBOARDING FRICTION
+
+Viewers want to support creators with crypto, but connecting wallets, managing gas fees, and understanding networks is a major barrier for non-native users.
+
+### 3. NO REAL-TIME ON-CHAIN ALERTS
+
+Most crypto transfers are silent. They don't trigger stream alerts (OBS) instantly, requiring complex webhook setups or manual monitoring by the creator.
+
+---
+
+# What is SawerBase?
+
+A decentralized application (dApp) that lets creators **accept crypto donations** on **Base** with a **Web2-like UX** and seamless real-time streaming integration.
+
+* **Seamless Onboarding** via Privy (Email/Social Login)
+* **Smart Wallet Integration** for a Gasless experience
+* **Real-time OBS Overlay** for instant live notifications
+
+---
+
+# Core Features
+
+### 1. Hybrid Auth (Privy)
+
+Users can login with Email (creating an automatic Smart Wallet) or connect existing Web3 Wallets (Metamask, Coinbase Wallet, etc.).
+
+### 2. Stream Overlay
+
+Dedicated overlay URL for OBS/Streamlabs. Alerts pop up instantly on-stream when a donation is confirmed on-chain./page.tsx]
+
+### 3. Creator Dashboard
+
+A centralized hub to track donation history and overlay menu.
+
+### 4. Direct Settlement
+
+Donations go directly to the creator's wallet. No holding periods, no minimum withdrawal thresholds.
+
+---
+
+# Built on Base Ecosystem
+
+### Frontend & Logic (Next.js 16 + TypeScript)
+
+* **App Router Architecture:** Modular routing for the `(main)` dashboard and optimized `(overlaypage)` public views.
+* **UI Components:** Shadcn/UI (Radix), Tailwind CSS, and Framer Motion for smooth alert animations.
+* **State Management:** TanStack Query for efficient server-state synchronization.
+
+### Authentication & Web3 (Privy + Wagmi)
+
+* **Privy:** Embedded wallets for email users to remove seed phrase anxiety.
+* **Wagmi & Viem:** Robust hooks for interacting with the Base network and smart contracts.
+
+### Backend & Realtime (Supabase)
+
+* **Database:** Manages user profiles, donation indexing, and configuration settings.
+* **Realtime:** Subscriptions ensure overlay alerts fire the millisecond a donation is recorded, without polling.
+
+---
+
+# Project Structure
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+sawerbase/
+├── src/
+│   ├── app/
+│   │   ├── (main)/          # Dashboard, Leaderboard, History pages
+│   │   ├── (overlaypage)/   # Lightweight public overlays for OBS
+│   │   └── api/             # Next.js API Routes
+│   ├── components/
+│   │   ├── auth/            # Login & Registration logic (Privy)
+│   │   ├── features/        # Donation widgets, alerts
+│   │   └── ui/              # Reusable UI components
+│   ├── hooks/               # Custom hooks (useDonationLogic, useRealtime)
+│   ├── lib/                 # Supabase & Utils
+│   └── providers/           # Context providers (Privy, QueryClient)
+└── public/                  # Static assets
+
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Getting Started
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Prerequisites
 
-## Learn More
+* Node.js 18+
+* Supabase Project
+* Privy App ID
+* Smart Contract
+* Mock IDRX
 
-To learn more about Next.js, take a look at the following resources:
+### Installation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Clone Repository**
+```bash
+git clone https://github.com/Fnrzz/sawerbase.git
+cd sawerbase
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
 
-## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. **Install Dependencies**
+```bash
+npm install
+# or
+yarn install
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+
+
+3. **Setup Environment Variables**
+Create a `.env.local` file and populate it with your keys, including the Smart Contract and Token addresses:
+```env
+# Auth & Backend
+NEXT_PUBLIC_PRIVY_APP_ID=your_privy_app_id
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+
+# Blockchain Config (Base Sepolia/Mainnet)
+NEXT_PUBLIC_SMART_CONTRACT_ADDRESS=0x... # Your SawerBase Contract
+NEXT_PUBLIC_IDRX_ADDRESS=0x...           # IDRX Token Address
+
+```
+
+
+4. **Run Development Server**
+```bash
+npm run dev
+
+```
+
+
+
+Open [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000) to view the application.
+
+---
+
+# Roadmap 🗺️
+
+### 📍 Q1 2026: Foundation & MVP (Current)
+
+> *Focus: Core infrastructure, payments, and basic overlays.*
+
+* [x] **Smart Contracts:** Donation routing contract deployed on Base Sepolia.
+* [x] **Auth:** Integrated Privy for Email & Wallet login.
+* [x] **Overlay:** Real-time OBS alerts via Supabase Realtime.
+* [ ] **Token Support:** Add IDRX  stablecoin support.
+
+### 🚀 Q2 2026: Creator Tools & Customization
+
+> *Focus: Enhancing the streaming experience.*
+
+* [ ] **TTS (Text-to-Speech):** Auto-read donation messages on stream.
+* [ ] **Custom Alerts:** Allow creators to upload custom GIFs/Sounds.
+* [ ] **Mobile Optimization:** PWA support for managing donations on the go.
+
+### 🌐 Q3 2026: Expansion & Ecosystem
+
+> *Focus: Broadening access and liquidity.*
+
+* [ ] **Multi-Token Swaps:** Donate with any ERC-20, creator receives USDC/IDRX.
+* [ ] **Fiat On-Ramp:** Direct IDR to Crypto top-up integration.
+* [ ] **Analytics Pro:** Deep dive into donor demographics and peak times.
+
+---
+
+# License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+**SawerBase — Empowering Creators on Base.**
