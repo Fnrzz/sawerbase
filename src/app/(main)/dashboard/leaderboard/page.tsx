@@ -38,7 +38,7 @@ export default function Leaderboard() {
   if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto pt-24">
+    <div className="max-w-2xl mx-auto px-4 pt-24">
         <header className="mb-8">
             <h1 className="text-3xl font-bold mb-1">Leaderboard</h1>
             <p className="text-muted-foreground">Pengaturan tampilan klasemen donatur teratas.</p>

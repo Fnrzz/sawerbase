@@ -40,7 +40,7 @@ export default function TipAlert() {
   if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto py-24">
+    <div className="max-w-2xl mx-auto px-4 py-24">
         <header className="mb-8">
             <h1 className="text-3xl font-bold mb-1">Tip Alert</h1>
             <p className="text-muted-foreground">Pengaturan notifikasi donasi di OBS.</p>
