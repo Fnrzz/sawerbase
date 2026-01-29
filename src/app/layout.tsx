@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
+import Link from "next/link";
+import Image from "next/image";
+
 import { Providers } from "@/providers/Providers";
 import { Toaster } from "@/components/ui/sonner";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -14,6 +17,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "SawerBase",
   description: "Decentralized Livestream Donations on Base Sepolia",
+  icons: {
+    icon: "/logo.webp",
+  },
 };
 
 export const viewport: Viewport = {
@@ -34,6 +40,12 @@ export default function RootLayout({
         <Providers>
           <AuthGuard>
           <div id="app-wrapper" className="w-full max-w-[480px] min-h-screen flex flex-col relative">
+            <div className="absolute top-4 left-4 z-50">
+              <Link href="/" className="flex items-center gap-2">
+                  <Image src="/logo.webp" alt="SawerBase" width={32} height={32} className="w-8 h-8 rounded-full" />
+                  <span className="font-bold text-lg tracking-tight hidden sm:block">Sawer<span className="text-violet-500">Base</span></span>
+              </Link>
+            </div>
             <div className="absolute top-4 right-4 z-50 flex gap-2">
               <LanguageToggle />
               <ModeToggle />
