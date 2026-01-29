@@ -96,6 +96,25 @@ export const translations = {
     noSearchResults: 'Tidak ada hasil pencarian.',
     noHistoryFound: 'Tidak ada riwayat donasi ditemukan.',
     viewTransaction: 'Lihat Transaksi',
+
+    // Withdraw
+    withdraw: 'Tarik Saldo',
+    withdrawTitle: 'Tarik Saldo IDRX',
+    withdrawDesc: 'Transfer saldo IDRX ke alamat wallet lain.',
+    sourceAddress: 'Sumber Dana',
+    recipientAddress: 'Alamat Tujuan',
+    recipientPlaceholder: '0x...',
+    max: 'Maks',
+    withdrawAction: 'Tarik Sekarang',
+    withdrawSuccess: 'Penarikan berhasil diproses!',
+    invalidAddress: 'Alamat tujuan tidak valid.',
+    invalidAmount: 'Jumlah tidak valid.',
+    networkWarning: 'Pastikan alamat tujuan mendukung Base Network (EVM).',
+    processingWithdraw: 'Memproses penarikan...',
+    smartWallet: 'Smart Wallet (Gas Gratis)',
+    eoaWallet: 'Personal Wallet',
+    insufficientFunds: 'Saldo tidak mencukupi.',
+    zeroAmount: 'Jumlah harus lebih dari 0.',
   },
   en: {
     // Common
@@ -192,5 +211,24 @@ export const translations = {
     noSearchResults: 'No search results.',
     noHistoryFound: 'No donation history found.',
     viewTransaction: 'View Transaction',
+
+    // Withdraw
+    withdraw: 'Withdraw',
+    withdrawTitle: 'Withdraw IDRX Balance',
+    withdrawDesc: 'Transfer IDRX balance to another wallet.',
+    sourceAddress: 'Source',
+    recipientAddress: 'Recipient Address',
+    recipientPlaceholder: '0x...',
+    max: 'Max',
+    withdrawAction: 'Withdraw Now',
+    withdrawSuccess: 'Withdrawal processed successfully!',
+    invalidAddress: 'Invalid recipient address.',
+    invalidAmount: 'Invalid amount.',
+    networkWarning: 'Ensure recipient supports Base Network (EVM).',
+    processingWithdraw: 'Processing withdrawal...',
+    smartWallet: 'Smart Wallet (Gasless)',
+    eoaWallet: 'Personal Wallet',
+    insufficientFunds: 'Insufficient funds.',
+    zeroAmount: 'Amount must be greater than 0.',
   }
 };

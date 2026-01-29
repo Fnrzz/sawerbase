@@ -8,10 +8,12 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Copy, Coins, History, LogOut } from 'lucide-react';
+import { Copy, Coins, History, LogOut, ArrowUpRight } from 'lucide-react';
 import { IDRX_ADDRESS } from '@/constants/contracts';
 import { formatUnits } from 'viem';
 import { useLanguage } from '@/context/LanguageContext';
+import { WithdrawDrawer } from '@/components/dashboard/WithdrawDrawer';
+import Link from 'next/link';
 
 export default function Dashboard() {
   const { ready, authenticated, user, logout } = usePrivy();
@@ -128,7 +130,7 @@ export default function Dashboard() {
             </div>
 
             {/* Action Buttons Grid */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
                 <div className="flex flex-col items-center gap-2">
                     <Button 
                         onClick={copyLink}
@@ -160,17 +162,31 @@ export default function Dashboard() {
                      <span className="text-[10px] text-muted-foreground font-medium">{t('share')}</span>
                 </div>
 
-                {/* Overlay removed */}
-
                 <div className="flex flex-col items-center gap-2">
-                    <Button 
-                        variant="outline"
-                        className="w-16 h-16 rounded-full bg-card border-border hover:bg-muted hover:text-blue-500 p-0 shadow-lg"
-                        onClick={() => router.push('/dashboard/history')}
+                    <Link 
+                        href="/dashboard/history"
+                        className="flex items-center justify-center w-16 h-16 rounded-full bg-card border border-border hover:bg-muted hover:text-primary p-0 shadow-lg transition-colors"
                     >
                         <History className="w-6 h-6" />
-                    </Button>
+                    </Link>
                     <span className="text-[10px] text-muted-foreground font-medium">{t('history')}</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                    <WithdrawDrawer 
+                        currentBalance={balanceData?.value || 0n} 
+                        onSuccess={() => {
+                             setTimeout(() => window.location.reload(), 2000); 
+                        }} 
+                    >
+                        <Button 
+                            variant="outline"
+                            className="w-16 h-16 rounded-full bg-card border-border hover:bg-muted hover:text-red-500 p-0 shadow-lg"
+                        >
+                            <ArrowUpRight className="w-6 h-6" />
+                        </Button>
+                    </WithdrawDrawer>
+                    <span className="text-[10px] text-muted-foreground font-medium">{t('withdraw')}</span>
                 </div>
             </div>
 
