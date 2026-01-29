@@ -2,8 +2,10 @@
 
 
 import { LoginButton } from './LoginButton';
+import { useLanguage } from '@/context/LanguageContext';
 
 export function AuthLanding() {
+  const { t } = useLanguage();
 
 
   return (
@@ -13,7 +15,7 @@ export function AuthLanding() {
           SAWER<span className="text-violet-500">BASE</span>
         </h1>
         <p className="text-muted-foreground">
-          Dukung kreator favoritmu dengan IDRX di Base Sepolia.
+          {t('landingSubtitle')}
         </p>
       </div>
 
@@ -25,7 +27,7 @@ export function AuthLanding() {
       </div>
       
       <p className="text-xs text-muted-foreground px-8">
-        Dengan masuk, kamu menyetujui Syarat & Ketentuan SawerBase beta.
+        {t('termsText')}
       </p>
     </div>
   );

@@ -9,9 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useStreamerDonations } from '@/hooks/useDonations';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function HistoryPage() {
   const { ready, authenticated } = usePrivy();
+  const { t } = useLanguage();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -52,14 +54,14 @@ export default function HistoryPage() {
             >
                 <ArrowLeft className="w-6 h-6" />
             </Button>
-            <h1 className="text-2xl font-bold">Riwayat Donasi</h1>
+            <h1 className="text-2xl font-bold">{t('donationHistory')}</h1>
         </div>
 
         {/* Search */}
         <div className="relative">
             <Search className="absolute left-4 top-3.5 w-5 h-5 text-muted-foreground" />
             <Input 
-                placeholder="Cari nama atau pesan..." 
+                placeholder={t('searchPlaceholder')} 
                 className="pl-12 bg-card border-border h-12 rounded-xl text-foreground placeholder:text-muted-foreground focus:border-primary/50"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
@@ -72,12 +74,12 @@ export default function HistoryPage() {
                 <div className="space-y-4">
                 {error ? (
                     <div className="p-8 text-center border border-destructive/20 bg-destructive/10 rounded-3xl text-destructive/80">
-                        <p>Failed to load donations.</p>
+                        <p>{t('failedToLoad')}</p>
                     </div>
                 ) : filteredDonations.length === 0 ? (
                     <div className="p-12 text-center border border-dashed border-border rounded-3xl text-muted-foreground">
                         <Calendar className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                        <p>{searchTerm ? 'Tidak ada hasil pencarian.' : 'Tidak ada riwayat donasi ditemukan.'}</p>
+                        <p>{searchTerm ? t('noSearchResults') : t('noHistoryFound')}</p>
                     </div>
                 ) : (
                     filteredDonations.map((d) => (
@@ -126,7 +128,7 @@ export default function HistoryPage() {
                                             rel="noopener noreferrer"
                                             className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
                                         >
-                                            Lihat Transaksi <ExternalLink className="w-3 h-3" />
+                                            {t('viewTransaction')} <ExternalLink className="w-3 h-3" />
                                         </a>
                                     )}
                                 </div>

@@ -6,9 +6,12 @@ import { Home, History, Trophy, Layers } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { cn } from '@/lib/utils'; // Assuming utils exists
 
+import { useLanguage } from '@/context/LanguageContext';
+
 export function BottomNav() {
   const pathname = usePathname();
   const { authenticated } = usePrivy();
+  const { t } = useLanguage();
 
   // Hide BottomNav on public donation pages (/[username]) if desired
   // Assuming usernames don't start with "dashboard" or "profile" etc.
@@ -32,10 +35,10 @@ export function BottomNav() {
   if (!isAppRoute && pathname !== '/') return null; // Simple heuristic
 
   const tabs = [
-    { name: 'Home', href: '/dashboard', icon: Home, active: pathname === '/dashboard' || pathname === '/' },
-    { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy, active: pathname.startsWith('/dashboard/leaderboard') },
-    { name: 'Overlay', href: '/dashboard/overlay', icon: Layers, active: pathname.startsWith('/dashboard/overlay') },
-    { name: 'Riwayat', href: '/dashboard/history', icon: History, active: pathname.startsWith('/dashboard/history') },
+    { name: t('navHome'), href: '/dashboard', icon: Home, active: pathname === '/dashboard' || pathname === '/' },
+    { name: t('navLeaderboard'), href: '/dashboard/leaderboard', icon: Trophy, active: pathname.startsWith('/dashboard/leaderboard') },
+    { name: t('navOverlay'), href: '/dashboard/overlay', icon: Layers, active: pathname.startsWith('/dashboard/overlay') },
+    { name: t('navHistory'), href: '/dashboard/history', icon: History, active: pathname.startsWith('/dashboard/history') },
   ];
 
   return (

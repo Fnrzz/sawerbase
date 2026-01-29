@@ -6,6 +6,7 @@ import { Providers } from "@/providers/Providers";
 import { Toaster } from "@/components/ui/sonner";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ModeToggle } from "@/components/ui/mode-toggle";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 import AuthGuard from "@/components/auth/AuthGuard";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -33,7 +34,8 @@ export default function RootLayout({
         <Providers>
           <AuthGuard>
           <div id="app-wrapper" className="w-full max-w-[480px] min-h-screen flex flex-col relative">
-            <div className="absolute top-4 right-4 z-50">
+            <div className="absolute top-4 right-4 z-50 flex gap-2">
+              <LanguageToggle />
               <ModeToggle />
             </div>
             {children}

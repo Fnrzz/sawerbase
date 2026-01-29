@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner';
 import { Loader2, User, AlertTriangle, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface DonationWidgetProps {
   streamerAddress: string;
@@ -39,6 +40,7 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
   const [donorName, setDonorName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const { t } = useLanguage();
 
   // Track last action for Supabase logging ('APPROVE' or 'DONATE')
   const lastActionRef = useRef<'APPROVE' | 'DONATE' | null>(null);
@@ -60,13 +62,13 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
 
   const handleMainAction = () => {
     if (!amount || parseFloat(amount) < 10000) {
-      toast.error('Minimum donasi adalah 10.000 IDRX');
+      toast.error(t('minDonation'));
       return;
     }
     
     // Gas Check
     if (!hasEth) {
-        toast.warning('Kamu tidak punya ETH untuk gas fee di Base Sepolia!');
+        toast.warning(t('noEthGas'));
     }
 
     if (status === 'LOGIN_NEEDED') {
@@ -82,7 +84,7 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
 
   const handleConfirmDonate = () => {
       lastActionRef.current = 'DONATE';
-      const nameToUse = isPrivate ? 'Anonymous' : (donorName || 'Someone');
+      const nameToUse = isPrivate ? t('anonymous') : (donorName || t('someone'));
       donate(nameToUse, message);
       setIsConfirmOpen(false);
   };
@@ -90,23 +92,23 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
   // Handle Transaction Success
   const handleTxSuccess = useCallback(async () => {
     if (lastActionRef.current === 'DONATE') {
-      toast.success('Donation submitted! Waiting for confirmation...');
+      toast.success(t('donationSubmitted'));
       
       setAmount('');
       setMessage('');
-      toast.info('Message sent to overlay!');
+      toast.info(t('messageSent'));
       
       lastActionRef.current = null; // Reset
     } else if (lastActionRef.current === 'APPROVE') {
-      toast.info('Approval submitted. You can now donate once confirmed.');
+      toast.info(t('approvalSubmitted'));
       lastActionRef.current = null;
     }
-  }, []);
+  }, [t]);
 
   // Watch for confirmation
   useEffect(() => {
     if (isConfirmed && hash) {
-       toast.success('Transaction confirmed!');
+       toast.success(t('txConfirmed'));
        handleTxSuccess();
     }
   }, [isConfirmed, hash, handleTxSuccess]);
@@ -114,17 +116,17 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
   // Watch for Errors
   useEffect(() => {
     if (error) {
-      toast.error(error.message || 'Transaction failed');
+      toast.error(error.message || t('txFailed'));
     }
-  }, [error]);
+  }, [error, t]);
 
   const getButtonText = () => {
-    if (isProcessing) return 'Processing...';
-    if (status === 'LOGIN_NEEDED') return 'Login to Donate';
-    if (status === 'APPROVE_NEEDED') return 'Approve IDRX';
-    if (status === 'READY_TO_DONATE') return 'Review Donation';
-    if (status === 'CHECKING') return 'Checking...';
-    return 'Enter Amount';
+    if (isProcessing) return t('processing');
+    if (status === 'LOGIN_NEEDED') return t('loginToDonate');
+    if (status === 'APPROVE_NEEDED') return t('approveIdrx');
+    if (status === 'READY_TO_DONATE') return t('reviewDonation');
+    if (status === 'CHECKING') return t('checking');
+    return t('enterAmount');
   };
 
   const isButtonDisabled = 
@@ -155,7 +157,7 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
         {/* Amount Input */}
         <div className="space-y-4">
              <div className="bg-card border border-border rounded-2xl p-6 text-center shadow-sm">
-                 <label className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2 block">NOMINAL DONASI</label>
+                 <label className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2 block">{t('donationAmount')}</label>
                  <div className="flex items-baseline justify-center gap-2">
                     <input 
                         type="text"
@@ -193,9 +195,9 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
         {/* Info Inputs */}
         <div className="space-y-4 bg-card border border-border p-4 rounded-2xl shadow-sm">
             <div>
-                <Label className="text-muted-foreground text-xs font-bold uppercase mb-2 block">DARI SIAPA?</Label>
+                <Label className="text-muted-foreground text-xs font-bold uppercase mb-2 block">{t('fromWho')}</Label>
                 <Input 
-                    placeholder="Nama Kamu (Opsional)"
+                    placeholder={t('yourNameOptional')}
                     value={donorName}
                     onChange={e => setDonorName(e.target.value)}
                     className="bg-muted/50 border-input h-12 rounded-xl text-foreground placeholder:text-muted-foreground focus:border-primary/50"
@@ -203,14 +205,14 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
             </div>
 
             <div className="flex items-center justify-between py-2">
-                <Label htmlFor="private-mode" className="text-muted-foreground text-sm cursor-pointer">Sembunyikan nama di overlay?</Label>
+                <Label htmlFor="private-mode" className="text-muted-foreground text-sm cursor-pointer">{t('hideName')}</Label>
                 <Switch id="private-mode" checked={isPrivate} onCheckedChange={setIsPrivate} className="data-[state=checked]:bg-primary"/>
             </div>
 
             <div>
-                <Label className="text-muted-foreground text-xs font-bold uppercase mb-2 block">PESAN</Label>
+                <Label className="text-muted-foreground text-xs font-bold uppercase mb-2 block">{t('messageLabel')}</Label>
                 <Textarea 
-                    placeholder="Tulis pesan dukunganmu..."
+                    placeholder={t('messagePlaceholder')}
                     value={message}
                     onChange={e => setMessage(e.target.value)}
                     className="bg-muted/50 border-input min-h-[80px] rounded-xl text-foreground placeholder:text-muted-foreground resize-none focus:border-primary/50"
@@ -226,7 +228,7 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1">
                         <Wallet className="w-3 h-3" />
-                        <span>Saldo: {balance ? parseFloat(formatUnits(balance, 18)).toLocaleString('id-ID') : '0'} IDRX</span>
+                        <span>{t('balance')}: {balance ? parseFloat(formatUnits(balance, 18)).toLocaleString('id-ID') : '0'} IDRX</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -235,7 +237,7 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
                         onClick={logout} 
                         className="text-destructive/80 hover:text-destructive transition-colors uppercase font-bold text-[10px]"
                     >
-                        Disconnect
+                        {t('disconnect')}
                     </button>
                 </div>
             </div>
@@ -250,7 +252,7 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
                     disabled={isButtonDisabled}
                 >
                     {isProcessing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
-                    {!hasBalance && status !== 'APPROVE_NEEDED' && status !== 'LOGIN_NEEDED' ? 'Saldo IDRX Kurang' : getButtonText()}
+                    {!hasBalance && status !== 'APPROVE_NEEDED' && status !== 'LOGIN_NEEDED' ? t('insufficientBalance') : getButtonText()}
                 </Button>
             </div>
         </div>
@@ -260,26 +262,26 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
             <DrawerContent className="bg-card border-t border-border text-foreground">
                 <div className="max-w-md mx-auto w-full">
                     <DrawerHeader>
-                        <DrawerTitle className="text-center text-xl">Konfirmasi Saweran</DrawerTitle>
+                        <DrawerTitle className="text-center text-xl">{t('confirmDonation')}</DrawerTitle>
                         <DrawerDescription className="text-center text-muted-foreground">
-                            Pastikan detail di bawah ini sudah benar.
+                            {t('confirmDesc')}
                         </DrawerDescription>
                     </DrawerHeader>
                     
                     <div className="p-4 space-y-4">
                         <div className="bg-muted/50 p-4 rounded-xl space-y-3">
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Nominal</span>
+                                <span className="text-muted-foreground">{t('amount')}</span>
                                 <span className="font-bold text-primary">{formatRupiah(amount)} IDRX</span>
                             </div>
                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Streamer</span>
+                                <span className="text-muted-foreground">{t('streamer')}</span>
                                 <span className="font-bold text-foreground">{streamerName}</span>
                             </div>
                             <div className="border-t border-border my-2 pt-2">
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Dari</span>
-                                    <span className="font-bold text-foreground">{isPrivate ? 'Anonymous' : (donorName || 'Someone')}</span>
+                                    <span className="text-muted-foreground">{t('from')}</span>
+                                    <span className="font-bold text-foreground">{isPrivate ? t('anonymous') : (donorName || t('someone'))}</span>
                                 </div>
                                 {message && (
                                     <div className="mt-2 text-sm text-muted-foreground italic">
@@ -293,10 +295,10 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
                             className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-lg"
                             onClick={handleConfirmDonate}
                         >
-                            Konfirmasi & Kirim
+                            {t('confirmSend')}
                         </Button>
                         <DrawerClose asChild>
-                            <Button variant="ghost" className="w-full text-muted-foreground">Batal</Button>
+                            <Button variant="ghost" className="w-full text-muted-foreground">{t('cancel')}</Button>
                         </DrawerClose>
                     </div>
                 </div>

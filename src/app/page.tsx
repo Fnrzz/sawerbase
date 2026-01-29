@@ -6,6 +6,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { AuthLanding } from '@/components/auth/AuthLanding';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { Loader2 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function Home() {
   const { ready, authenticated } = usePrivy();
@@ -38,6 +39,7 @@ export default function Home() {
 
 function DashboardRedirector() {
     const router = useRouter();
+    const { t } = useLanguage();
     
     useEffect(() => {
         router.push('/dashboard');
@@ -50,7 +52,7 @@ function DashboardRedirector() {
              </h1>
              <div className="flex flex-col items-center text-muted-foreground text-sm">
                 <Loader2 className="w-5 h-5 animate-spin mb-2" />
-                Mengalihkan ke dashboard...
+                {t('redirecting')}
              </div>
         </div>
     );

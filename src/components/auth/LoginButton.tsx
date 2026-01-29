@@ -10,10 +10,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useLanguage } from '@/context/LanguageContext';
 
 export function LoginButton() {
   const { login, logout, authenticated, user } = usePrivy();
   const { disconnect } = useDisconnect();
+  const { t } = useLanguage();
 
   const handleLogin = () => {
     login();
@@ -28,7 +30,7 @@ export function LoginButton() {
     return (
       <Button onClick={handleLogin} className="font-bold">
         <Wallet className="w-4 h-4 mr-2" />
-        Masuk / Daftar
+        {t('loginButton')}
       </Button>
     );
   }
@@ -46,7 +48,7 @@ export function LoginButton() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Akun Saya</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {user?.wallet?.address && (
            <DropdownMenuItem className="text-xs font-mono text-muted-foreground break-all" onClick={() => navigator.clipboard.writeText(user.wallet!.address)}>
@@ -56,7 +58,7 @@ export function LoginButton() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
           <LogOut className="w-4 h-4 mr-2" />
-          Keluar
+          {t('logout')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
