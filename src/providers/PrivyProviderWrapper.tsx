@@ -28,9 +28,8 @@ export default function PrivyProviderWrapper({
         loginMethods: ['email', 'wallet'],
         embeddedWallets: {
           ethereum: {
-             createOnLogin: 'users-without-wallets',
+             createOnLogin: 'all-users',
           },
-          // noPromptOnSignature: true, // Fix: Property does not exist in sensitive types. 
         },
       }}
     >
