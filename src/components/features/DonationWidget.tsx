@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+
 import {
   Drawer,
   DrawerContent,
@@ -17,7 +17,8 @@ import {
   DrawerClose,
 } from "@/components/ui/drawer";
 import { toast } from 'sonner';
-import { Loader2, User, AlertTriangle, Wallet } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, User, AlertTriangle, Wallet, Fuel, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -38,7 +39,6 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
   const [amount, setAmount] = useState('10000');
   const [message, setMessage] = useState('');
   const [donorName, setDonorName] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const { t } = useLanguage();
 
@@ -66,10 +66,10 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
       return;
     }
     
-    // Gas Check
-    if (!hasEth) {
-        toast.warning(t('noEthGas'));
-    }
+    // Gas Check - DISABLED for Gas Sponsorship
+    // if (!hasEth) {
+    //    toast.warning(t('noEthGas'));
+    // }
 
     if (status === 'LOGIN_NEEDED') {
         login();
@@ -84,7 +84,7 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
 
   const handleConfirmDonate = () => {
       lastActionRef.current = 'DONATE';
-      const nameToUse = isPrivate ? t('anonymous') : (donorName || t('someone'));
+      const nameToUse = donorName || t('someone');
       donate(nameToUse, message);
       setIsConfirmOpen(false);
   };
@@ -139,25 +139,62 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
 
   return (
     <div className="w-full space-y-6 py-24"> 
-        {/* pb-24 for Sticky Button clearance */}
+        {/* pb-32 for Sticky Button clearance */}
         
-        {/* Streamer Header */}
-        <div className="flex flex-col items-center text-center space-y-2 mb-8">
-             <div className="w-24 h-24 rounded-full bg-muted p-1.5">
-                <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/30">
-                    <User className="w-10 h-10" />
-                </div>
+        {/* New Profile Card Structure */}
+        <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
+            {/* Banner Area */}
+             <div className="h-32 w-full bg-primary/5 relative overflow-hidden">
+                {/* CSS Pattern for "cloud/wave" look - simplistic version with radial dots/circles */}
+                 <div className="absolute inset-0 opacity-[0.15]" 
+                      style={{ 
+                          backgroundImage: "radial-gradient(#9333ea 2px, transparent 2px)", 
+                          backgroundSize: "24px 24px" 
+                      }}>
+                 </div>
             </div>
-            <div>
-                <h2 className="text-2xl font-bold text-foreground">{streamerName}</h2>
-                <p className="text-muted-foreground text-sm">@{streamerUsername}</p>
+
+            {/* Profile Info */}
+            <div className="px-6 pb-8 pt-0 text-center relative">
+                 <div className="w-28 h-28 rounded-full bg-background p-1.5 mx-auto -mt-14 relative z-10 transition-transform hover:scale-105 duration-300">
+                    <div className="w-full h-full rounded-full bg-primary/5 flex items-center justify-center text-primary border border-border/50 shadow-sm overflow-hidden">
+                        <User className="w-12 h-12" />
+                    </div>
+                </div>
+                
+                <div className="mt-4 space-y-1">
+                    <h2 className="text-2xl font-bold text-foreground">{streamerName}</h2>
+                    <p className="text-muted-foreground text-sm">{t('supporterOf')} {streamerUsername}</p>
+                </div>
             </div>
         </div>
 
+        {/* Badges Section */}
+        <div className="flex items-center gap-3">
+             <Badge variant="secondary" className="bg-purple-100 text-purple-600 hover:bg-purple-200 border-none px-3 py-1.5 rounded-lg uppercase tracking-wider font-bold text-[10px]">
+                {t('tip')}
+            </Badge>
+             <Badge variant="secondary" className="bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 hover:from-emerald-200 hover:to-green-200 border border-emerald-200/50 gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all cursor-default">
+                <Zap className="w-3.5 h-3.5 fill-emerald-500/20 text-emerald-600" />
+                {t('gasFree')}
+            </Badge>
+        </div>
+
+        {/* CTA Text Header */}
+        <div className="space-y-1">
+            <h1 className="text-xl font-black uppercase text-foreground leading-tight">
+                {t('giveTipFor')} <span className="text-primary">{streamerName?.toUpperCase()}</span>
+            </h1>
+            <p className="text-muted-foreground text-sm">
+                {t('tipDescription')}
+            </p>
+        </div>
+
         {/* Amount Input */}
-        <div className="space-y-4">
-             <div className="bg-card border border-border rounded-2xl p-6 text-center shadow-sm">
+        <div className="space-y-4 pt-2">
+             <div className="bg-card border border-border rounded-2xl p-6 text-center shadow-sm relative overflow-hidden">
                  <label className="text-xs text-muted-foreground font-bold uppercase tracking-widest mb-2 block">{t('donationAmount')}</label>
+                 
                  <div className="flex items-baseline justify-center gap-2">
                     <input 
                         type="text"
@@ -190,6 +227,14 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
                 </button>
               ))}
             </div>
+
+             <div className="flex items-center justify-center gap-2 pt-2 opacity-80">
+                <div className="h-[1px] bg-border flex-1"></div>
+                <p className="text-sm text-center text-muted-foreground px-2 whitespace-nowrap">
+                    {t('platformFee')}
+                </p>
+                <div className="h-[1px] bg-border flex-1"></div>
+            </div>
         </div>
         
         {/* Info Inputs */}
@@ -204,10 +249,6 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
                 />
             </div>
 
-            <div className="flex items-center justify-between py-2">
-                <Label htmlFor="private-mode" className="text-muted-foreground text-sm cursor-pointer">{t('hideName')}</Label>
-                <Switch id="private-mode" checked={isPrivate} onCheckedChange={setIsPrivate} className="data-[state=checked]:bg-primary"/>
-            </div>
 
             <div>
                 <Label className="text-muted-foreground text-xs font-bold uppercase mb-2 block">{t('messageLabel')}</Label>
@@ -215,7 +256,7 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
                     placeholder={t('messagePlaceholder')}
                     value={message}
                     onChange={e => setMessage(e.target.value)}
-                    className="bg-muted/50 border-input min-h-[80px] rounded-xl text-foreground placeholder:text-muted-foreground resize-none focus:border-primary/50"
+                    className="bg-muted/50 border-input min-h-[150px] rounded-xl text-foreground placeholder:text-muted-foreground resize-none focus:border-primary/50"
                     maxLength={200}
                 />
                  <div className="text-right text-xs text-muted-foreground mt-1">{message.length}/200</div>
@@ -232,7 +273,6 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    {!hasEth && <span className="text-destructive font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> No ETH Gas</span>}
                     <button 
                         onClick={logout} 
                         className="text-destructive/80 hover:text-destructive transition-colors uppercase font-bold text-[10px]"
@@ -247,7 +287,7 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
         <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
             <div className="w-full max-w-[480px] pointer-events-auto bg-background/90 backdrop-blur-xl border-t border-border p-4">
                 <Button 
-                    className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-lg disabled:opacity-50"
+                    className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-lg disabled:opacity-50 shadow-lg shadow-primary/20"
                     onClick={handleMainAction}
                     disabled={isButtonDisabled}
                 >
@@ -281,7 +321,7 @@ export function DonationWidget({ streamerAddress, streamerName, streamerUsername
                             <div className="border-t border-border my-2 pt-2">
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">{t('from')}</span>
-                                    <span className="font-bold text-foreground">{isPrivate ? t('anonymous') : (donorName || t('someone'))}</span>
+                                    <span className="font-bold text-foreground">{donorName || t('someone')}</span>
                                 </div>
                                 {message && (
                                     <div className="mt-2 text-sm text-muted-foreground italic">

@@ -88,6 +88,12 @@ export const translations = {
     enterAmount: 'Masukkan Nominal',
     anonymous: 'Anonim',
     someone: 'Seseorang',
+    supporterOf: 'Pendukung',
+    tip: 'TIP',
+    gasFree: 'Bebas Gas',
+    giveTipFor: 'KASIH TIP UNTUK',
+    tipDescription: 'Pengen apresiasi kreator favoritmu? Kasih dukungan langsung pake tip! 💕',
+    platformFee: '10% donasi kamu akan di potong ke platform',
 
     // History
     donationHistory: 'Riwayat Donasi',
@@ -203,6 +209,12 @@ export const translations = {
     enterAmount: 'Enter Amount',
     anonymous: 'Anonymous',
     someone: 'Someone',
+    supporterOf: 'Supporter of',
+    tip: 'TIP',
+    gasFree: 'Gas-Free',
+    giveTipFor: 'GIVE TIP FOR',
+    tipDescription: 'Want to appreciate your favorite creator? Support them directly with a tip! 💕',
+    platformFee: '10% of your donation will be deducted for the platform',
 
     // History
     donationHistory: 'Donation History',
